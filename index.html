@@ -40,26 +40,29 @@
 <body>
 
     <div class="display-container">
-        <!-- Boğaz Manzaralı Türk Bayrağı Videosu -->
-        <video id="myVideo" autoplay loop muted playsinline preload="auto">
-            <source src="https://media.istockphoto.com/id/1299704825/tr/video/t%C3%BCrk-bayra%C4%9Fi-ve-bo%C4%9Faz.mp4?s=mp4-640x640-is&k=20&c=tPO_xzfmfIKGzVjMzhXHFaQe6uUFPtoB8Sc92XbzprE=" type="video/mp4">
+        <!-- İlk İstediğiniz Yüksek Detay Türk Bayrağı Videosu -->
+        <video id="myVideo" autoplay loop muted playsinline preload="auto" crossorigin="anonymous">
+            <source src="https://media.istockphoto.com/id/1126429890/tr/video/y%C3%BCksek-detay-t%C3%BCrk-bayra%C4%9F%C4%B1-sorunsuz-d%C3%B6ng%C3%BC.mp4?s=mp4-640x640-is&k=20&c=RwmzNE9FA0A8v0zJ7kfmnqwm8E0wtnXQAe9HQa39w10=" type="video/mp4">
             Tarayıcınız video etiketini desteklemiyor.
         </video>
     </div>
 
     <script>
-        // Tarayıcıların otomatik oynatma engellerini aşmak için tetikleyici script
         window.addEventListener('DOMContentLoaded', (event) => {
             const video = document.getElementById('myVideo');
             if (video) {
-                video.muted = true; // Tarayıcı izni için mutlaka sessiz olmalı
-                video.play().catch(error => {
-                    console.log("Otomatik oynatma engellendi, yeniden deneniyor...", error);
-                    // Kullanıcı etkileşimi olmadan oynatma başarısız olursa tekrar zorla
-                    document.body.addEventListener('click', () => {
-                        video.play();
-                    }, { once: true });
-                });
+                video.muted = true;
+                // Tarayıcı otomatik oynatma izin kontrolü
+                let playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("Otomatik oynatma için kullanıcı etkileşimi bekleniyor...");
+                        // Siyah ekranda kalmaması için ilk tıklamada videoyu başlatır
+                        document.body.addEventListener('click', () => {
+                            video.play();
+                        }, { once: true });
+                    });
+                }
             }
         });
     </script>
