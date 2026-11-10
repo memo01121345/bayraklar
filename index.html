@@ -1,70 +1,96 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Türk Bayrağı Web Display</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        /* 1280x720 Sabit Web Ekran Alanı */
-        .display-container {
-            width: 1280px;
-            height: 720px;
-            position: relative;
-            background-color: #000;
-            overflow: hidden;
-        }
-        /* Arka Plan Videosu */
-        #myVideo {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Türk Bayrağı Web Display</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000}
+body{display:flex;justify-content:center;align-items:center}
+/* 1280x720 sabit ekran; pencereye oran korunarak sığar */
+canvas{width:min(100vw,calc(100vh*16/9));height:auto;aspect-ratio:16/9;display:block;background:#000}
+</style>
 </head>
 <body>
+<canvas id="c" width="1280" height="720"></canvas>
+<script>
+/* Ayarlar: ?fps=30 ile sınırlanabilir (Minecraft'ta daha az yük) */
+const FPS=Math.max(10,Math.min(60,+new URLSearchParams(location.search).get('fps')||60));
+const VW=1280,VH=720;
+const FW=1000,FH=Math.round(FW/1.5);         // bayrak 2:3
+const FX=(VW-FW)/2+10,FY=(VH-FH)/2;           // sol üst
+const SW=4;                                    // şerit genişliği (px) - büyütürsen hızlanır
+const AMP=20;                                  // dalga genliği
+const cv=document.getElementById('c'),ctx=cv.getContext('2d',{alpha:false});
 
-    <div class="display-container">
-        <!-- İlk İstediğiniz Yüksek Detay Türk Bayrağı Videosu -->
-        <video id="myVideo" autoplay loop muted playsinline preload="auto" crossorigin="anonymous">
-            <source src="https://media.istockphoto.com/id/1126429890/tr/video/y%C3%BCksek-detay-t%C3%BCrk-bayra%C4%9F%C4%B1-sorunsuz-d%C3%B6ng%C3%BC.mp4?s=mp4-640x640-is&k=20&c=RwmzNE9FA0A8v0zJ7kfmnqwm8E0wtnXQAe9HQa39w10=" type="video/mp4">
-            Tarayıcınız video etiketini desteklemiyor.
-        </video>
-    </div>
+/* ---- bayrak dokusu (resmi oranlar, 1200x800) ---- */
+const TW=1200,TH=800,tex=document.createElement('canvas');tex.width=TW;tex.height=TH;
+(function(){
+  const t=tex.getContext('2d');
+  t.fillStyle='#E30A17';t.fillRect(0,0,TW,TH);
+  t.fillStyle='#fff';t.beginPath();t.arc(425,400,200,0,7);t.fill();
+  t.fillStyle='#E30A17';t.beginPath();t.arc(475,400,160,0,7);t.fill();
+  // yıldız: merkez (742,400), dış yarıçap 100, bir ucu sola bakar
+  const cx=742,cy=400,R=100,r=R*0.381966;
+  t.fillStyle='#fff';t.beginPath();
+  for(let i=0;i<10;i++){
+    const a=Math.PI+i*Math.PI/5,rad=i%2?r:R;
+    t[i?'lineTo':'moveTo'](cx+Math.cos(a)*rad,cy+Math.sin(a)*rad);
+  }
+  t.closePath();t.fill();
+})();
 
-    <script>
-        window.addEventListener('DOMContentLoaded', (event) => {
-            const video = document.getElementById('myVideo');
-            if (video) {
-                video.muted = true;
-                // Tarayıcı otomatik oynatma izin kontrolü
-                let playPromise = video.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.log("Otomatik oynatma için kullanıcı etkileşimi bekleniyor...");
-                        // Siyah ekranda kalmaması için ilk tıklamada videoyu başlatır
-                        document.body.addEventListener('click', () => {
-                            video.play();
-                        }, { once: true });
-                    });
-                }
-            }
-        });
-    </script>
+/* ---- sabit arka plan: gece, ışık, direk ---- */
+const bg=document.createElement('canvas');bg.width=VW;bg.height=VH;
+(function(){
+  const b=bg.getContext('2d');
+  let g=b.createLinearGradient(0,0,0,VH);g.addColorStop(0,'#05070c');g.addColorStop(1,'#10141c');
+  b.fillStyle=g;b.fillRect(0,0,VW,VH);
+  g=b.createRadialGradient(VW/2,VH/2,40,VW/2,VH/2,VW*.55);
+  g.addColorStop(0,'rgba(227,10,23,.22)');g.addColorStop(1,'rgba(227,10,23,0)');
+  b.fillStyle=g;b.fillRect(0,0,VW,VH);
+  // direk
+  const px=FX-16;
+  g=b.createLinearGradient(px,0,px+14,0);g.addColorStop(0,'#2a2f37');g.addColorStop(.45,'#b9c0ca');g.addColorStop(1,'#20242b');
+  b.fillStyle=g;b.fillRect(px,FY-24,14,VH);
+  // direk başı
+  g=b.createRadialGradient(px+5,FY-30,1,px+7,FY-26,12);g.addColorStop(0,'#fff2b0');g.addColorStop(1,'#a8801a');
+  b.fillStyle=g;b.beginPath();b.arc(px+7,FY-28,9,0,7);b.fill();
+  // vinyet
+  g=b.createRadialGradient(VW/2,VH/2,VH*.45,VW/2,VH/2,VW*.7);
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.6)');
+  b.fillStyle=g;b.fillRect(0,0,VW,VH);
+})();
+
+/* ---- dalgalanma ---- */
+const N=Math.ceil(FW/SW),k=TW/FW;
+const U=new Float32Array(N);for(let i=0;i<N;i++)U[i]=(i*SW)/FW;
+function draw(t){
+  ctx.drawImage(bg,0,0);
+  for(let i=0;i<N;i++){
+    const u=U[i],env=.1+.9*u;
+    const ph=u*7.2-t*2.4,ph2=u*13-t*3.9;
+    const dy=(Math.sin(ph)+.18*Math.sin(ph2))*AMP*env;
+    const d=(Math.cos(ph)+.18*Math.cos(ph2)*1.8)*env;   // eğim -> ışık/gölge
+    const x=FX+i*SW,y=FY+dy;
+    ctx.drawImage(tex,i*SW*k,0,SW*k,TH,x,y,SW+.6,FH);
+    if(d>0){ctx.fillStyle='rgba(255,255,255,'+(d*.13).toFixed(3)+')'}
+    else{ctx.fillStyle='rgba(0,0,0,'+(-d*.3).toFixed(3)+')'}
+    ctx.fillRect(x,y,SW+.6,FH);
+  }
+}
+
+/* ---- döngü: fps sınırı + sekme gizliyken durur ---- */
+let last=0,t0=performance.now(),run=true;
+function loop(now){
+  if(!run)return;
+  requestAnimationFrame(loop);
+  if(now-last<1000/FPS-1)return;
+  last=now;draw((now-t0)/1000);
+}
+document.addEventListener('visibilitychange',()=>{run=!document.hidden;if(run)requestAnimationFrame(loop)});
+requestAnimationFrame(loop);
+</script>
 </body>
 </html>
